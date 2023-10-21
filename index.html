@@ -1,0 +1,366 @@
+<style>
+    .notif {
+        padding-top: 30px;
+        padding-left: 15px;
+        background-color: #5eb3c4;
+    }
+
+    .notif {
+        font-weight: bolder;
+        font-size: 18px;
+        color: #ffffff;
+    }
+</style>
+
+<script>
+    $(document).ready(function () {
+
+        let brandLabel = 'PH'; // что должно содержаться в артикуле, чтобы для этого товара считалась скидка?
+
+        let discountTrigger = "quantity";
+
+        let usersPromo =
+            'LOVECLIENT'; // промокод для пользователей. Можно менять. Прописывайте промокод ЗАГЛАВНЫМИ БУКВАМИ!!!
+
+        let notificationElementText =
+            'ВНИМАНИЕ! При покупке от 3-х и более средств Вы получаете дополнительную скидку 20%'; // Текст уведомления при добавлении двух товаров
+
+        let codeList = [
+
+            [3, '20%', 'SYSTEMPROMO001'],
+            [1000, '20%', 'SYSTEMPROMO002'],
+            [1003, '40%', 'SYSTEMPROMO003']
+
+        ];
+
+        let permissionToDelete = true;
+
+
+        if (document.querySelector('div[data-input-lid="1648539818417"] input[name="Промокод"]') != null) {
+
+            document.querySelector('div[data-input-lid="1648539818417"] input[name="Промокод"]').remove();
+            document.querySelector('div[data-input-lid="1648539818417"] .t-input-block').innerHTML =
+                '<div class="t-inputpromocode__wrapper" style="display:table;width:100%;"> <input type="text" name="Промокод" class="t-input t-inputpromocode js-tilda-rule" value="" style="display: table-cell; color:#000000; border:1px solid #000000; " data-tilda-rule="promocode" autocomplete="no"> <div class="t-inputpromocode__btn t-btn" style="display: table-cell; position: relative; height: auto; color: rgb(255, 255, 255); background: rgb(94, 179, 196);">Activate</div> </div>';
+            // clearInterval(inputCheck);
+        }
+
+
+        let notificationElement = document.createElement("div");
+        notificationElement.className = "t706__cartwin-top t-name notif";
+        notificationElement.innerText = notificationElementText;
+        setInterval(function () {
+
+            let tcartTotalValue = 0;
+            let tcartTotalProduct = document.querySelectorAll('.t706__product');
+            for (i = 0; i < tcartTotalProduct.length; i++) {
+
+                tcartTotalValue += +tcartTotalProduct[i].querySelector('.t706__product-plusminus')
+                    .querySelector('.t706__product-quantity').innerText;
+
+            }
+
+            if (tcartTotalValue == 2) {
+
+                document.querySelector('.t706__cartwin-products').insertBefore(notificationElement,
+                    document.querySelector('.t706__cartwin-products').firstChild);
+
+            } else {
+
+                if (document.querySelector('.t706__cartwin-products .notif') != null) {
+
+                    document.querySelector('.t706__cartwin-products .notif').remove();
+
+                }
+
+            }
+
+        }, 0)
+        let triggerValue = 0;
+        let currentDiscount = [];
+        let upswing = false;
+        let saveinputPC = '';
+        let cartID = $('div[data-record-type="706"]').attr('id').replace(/[^0-9]/g, '');
+        let pcLid = $('.t-input-group_pc').attr('data-input-lid');
+        setTimeout(function () {
+            saveinputPC = $('.t-inputpromocode__wrapper').html()
+        }, 1000);
+
+        function getDiscountInfo(trval) {
+
+            let prevLine = 0;
+            let minTotal = 0;
+            for (let i = 0; i < codeList.length; i++) {
+                if (trval >= codeList[i][0] && codeList[i][0] > prevLine) {
+                    prevLine = codeList[i][0];
+                    for (let j = 0; j < 2; j++) {
+                        currentDiscount[j] = codeList[i][j + 1]
+                    };
+                    upswing = true;
+                } else if (trval < codeList[i][0]) minTotal++;
+            };
+            if (minTotal == codeList.length && upswing) {
+                currentDiscount = [];
+                clearDiscount();
+                upswing = false;
+                if (pcLid != undefined) {
+                    $('.t-input-group_pc').show();
+                    $('.t-inputpromocode__wrapper').html(saveinputPC);
+                    t_input_promocode_init(cartID, pcLid);
+                };
+            };
+            if (currentDiscount.length) {
+                $('.t-input-group_pc').hide();
+                window.tcart.promocode = {};
+                let totalWrap = $('.t706__cartwin-totalamount-wrap');
+                if (currentDiscount[0].indexOf('%') > 0) {
+                    window.tcart.promocode.discountpercent = (+currentDiscount[0].replace(/[^0-9.]/g, ''))
+                        .toFixed(2);
+                    clearTotalWrapClass();
+                    totalWrap.addClass('prcode_act_percent');
+                } else {
+                    window.tcart.promocode.discountsum = currentDiscount[0]
+                    clearTotalWrapClass();
+                    totalWrap.addClass('prcode_act_summ');
+                };
+                window.tcart.promocode.message = "OK";
+                window.tcart.promocode.promocode = currentDiscount[1];
+                tcart__updateTotalProductsinCartObj();
+            };
+
+            if (permissionToDelete) {
+
+                let product706delAll = document.querySelectorAll('.t706__cartwin-products .t706__product');
+
+                for (let i = 0; i < product706delAll.length; i++) {
+
+                    if (product706delAll[i].querySelector('.t706__product-title').innerText ==
+                        'systemcompensationitem') {
+
+                        product706delAll[i].querySelector('.t706__product-minus').click();
+
+                    }
+
+                }
+
+            }
+
+            let currentDiscountInGetDiscountInfo = '0%';
+
+            for (let i = 0; i < codeList.length; i++) {
+
+                if (trval >= codeList[i][0]) {
+
+                    currentDiscountInGetDiscountInfo = codeList[i][1];
+
+                }
+
+            }
+
+            console.log('25 = ' + currentDiscountInGetDiscountInfo)
+
+            let product706All = document.querySelectorAll('.t706__cartwin-products .t706__product');
+
+            let costProductsNotNrandLabel = 0;
+
+            for (let i = 0; i < product706All.length; i++) {
+
+                product706OptionAll = product706All[i].querySelectorAll(
+                    '.t706__product-title .t706__product-title__option')
+
+                let checkBrandLabel = false;
+
+                for (let m = 0; m < product706OptionAll.length; m++) {
+
+                    console.log(product706OptionAll[m])
+
+                    if (product706OptionAll[m].innerText.includes(brandLabel)) {
+
+                        checkBrandLabel = true;
+
+                    }
+
+                }
+
+                if (checkBrandLabel == false) {
+
+                    console.log(product706All[i].querySelector(
+                        '.t706__product-amount .t706__cartwin-prodamount-price'))
+
+                    costProductsNotNrandLabel += +product706All[i].querySelector(
+                        '.t706__product-amount .t706__cartwin-prodamount-price').innerText.replace(/\s/g,
+                        '');
+
+                }
+
+            }
+
+            let linkCreateOrder = document.querySelector('.linkCreateOrder a');
+
+            let linkCreateOrderString = '#order:systemcompensationitem=';
+
+            linkCreateOrderString += costProductsNotNrandLabel;
+
+            console.log(linkCreateOrderString)
+
+            linkCreateOrder.href = linkCreateOrderString;
+
+            permissionToDelete = false;
+
+            linkCreateOrder.click();
+
+            setTimeout(function () {
+
+                permissionToDelete = true;
+
+            }, 1500)
+
+        };
+
+        function clearTotalWrapClass() {
+            $('.t706__cartwin-totalamount-wrap').removeClass('prcode_act_percent prcode_act_summ')
+        };
+
+        function clearDiscount() {
+            if (window.tcart.hasOwnProperty("promocode")) {
+                delete window.tcart.promocode;
+                tcart__updateTotalProductsinCartObj();
+                clearTotalWrapClass();
+            };
+        };
+        $(".t706__cartwin-prodamount").bind('DOMSubtreeModified', function () {
+            let tcartTotalValue = 0;
+            let tcartTotalProduct = document.querySelectorAll('.t706__product');
+            for (i = 0; i < tcartTotalProduct.length; i++) {
+
+                tcartTotalValue += +tcartTotalProduct[i].querySelector('.t706__product-plusminus')
+                    .querySelector('.t706__product-quantity').innerText;
+
+            }
+
+            if (document.querySelector('div[data-input-lid="1648539818417"] .t-input-block input').value
+                .toUpperCase() == usersPromo) {
+
+                tcartTotalValue += 1000;
+
+            }
+
+            console.log(tcartTotalValue);
+            if (discountTrigger == "price") {
+                triggerValue = window.tcart.prodamount;
+            } else {
+                triggerValue = tcartTotalValue
+            };
+            getDiscountInfo(triggerValue);
+        });
+
+
+        document.querySelector('.t-inputpromocode__btn.t-btn').onclick = function () {
+            let tcartTotalValue = 0;
+            let tcartTotalProduct = document.querySelectorAll('.t706__product');
+            for (i = 0; i < tcartTotalProduct.length; i++) {
+
+                tcartTotalValue += +tcartTotalProduct[i].querySelector('.t706__product-plusminus')
+                    .querySelector('.t706__product-quantity').innerText;
+
+            }
+
+            if (document.querySelector('div[data-input-lid="1648539818417"] .t-input-block input').value
+                .toUpperCase() == usersPromo) {
+
+                tcartTotalValue += 1000;
+                document.querySelector(
+                        'div[data-input-lid="1648539818417"] .t-input-block .t-inputpromocode__btn.t-btn')
+                    .innerText = 'ACTIVATE ✔';
+
+            } else {
+
+                document.querySelector(
+                        'div[data-input-lid="1648539818417"] .t-input-block .t-inputpromocode__btn.t-btn')
+                    .innerText = 'ACTIVATE ✖';
+
+            }
+
+            console.log(tcartTotalValue);
+            if (discountTrigger == "price") {
+                triggerValue = window.tcart.prodamount;
+            } else {
+                triggerValue = tcartTotalValue
+            };
+            getDiscountInfo(triggerValue);
+
+            if (document.querySelector('.t706__product') != null) {
+
+                document.querySelector('.t706__product .t706__product-plus').click();
+                document.querySelector('.t706__product .t706__product-minus').click();
+
+            }
+        };
+
+
+    });
+</script>
+
+<style>
+    .notif {
+        padding-top: 30px;
+        padding-left: 15px;
+        background-color: #5eb3c4;
+        font-weight: bolder;
+        font-size: 18px;
+        color: #ffffff;
+    }
+
+    .t706__cartwin-totalamount-wrap {
+        display: block !important;
+        order: -1;
+        margin-bottom: 25px;
+    }
+
+    span.t706__cartwin-totalamount-label:before {
+        content: "Сумма к оплате:";
+        position: absolute;
+        right: 10px;
+        width: 300%;
+        color: #000;
+    }
+
+    span.t706__cartwin-totalamount-label,
+    .prcode_act_percent .t706__cartwin-totalamount-info span:nth-of-type(3) {
+        position: relative;
+        color: transparent;
+    }
+
+    .prcode_act_percent .t706__cartwin-totalamount-info span:nth-of-type(3):before {
+        content: "Процент скидки:";
+        position: absolute;
+        right: 1px;
+        width: 300%;
+        color: #000;
+    }
+
+    .prcode_act_summ .t706__cartwin-totalamount-info span:nth-of-type(3),
+    .prcode_act_summ .t706__cartwin-totalamount-info span:nth-of-type(4),
+    .prcode_act_summ .t706__cartwin-totalamount-info span:nth-of-type(4)+br {
+        display: none;
+    }
+
+    .t706 .t-form__inputsbox {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .t706__cartwin-bottom {
+        display: none
+    }
+
+    .t706__orderform {
+        margin-top: -5px
+    }
+
+    .is-hidden-block,
+    .linkCreateOrder {
+
+        display: none;
+
+    }
+</style>
