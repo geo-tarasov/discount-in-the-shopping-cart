@@ -21,3 +21,4 @@
 ## Отзыв о работе
 https://github.com/geo-tarasov/discount-in-the-shopping-cart/assets/88404017/6ade4013-7300-4c6e-a206-46e06e2a2ac6
 
+###### Код представлен в ознакомительных целях, не для свободного использования
